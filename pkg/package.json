@@ -1,0 +1,15 @@
+{
+  "name": "blackjack-core",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "blackjack_core_bg.wasm",
+    "blackjack_core.js",
+    "blackjack_core.d.ts"
+  ],
+  "main": "blackjack_core.js",
+  "types": "blackjack_core.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
