@@ -1634,12 +1634,15 @@ async function simulateHandWasm() {
         
         try {
             // Import WASM module - use the wasm path where the new build is
-            // Use import.meta.url to construct paths relative to this file
-            // This automatically handles GitHub Pages subdirectory paths
+            // Construct path relative to current page location (works for GitHub Pages)
             let wasmModule;
             try {
-                const wasmPath = new URL('./wasm/blackjack-core/pkg/blackjack_core.js', import.meta.url);
-                wasmModule = await import(wasmPath.href);
+                // Get base path for GitHub Pages (e.g., /Blackjack/)
+                const basePath = window.location.pathname.split('/').slice(0, -1).join('/') || '';
+                const wasmPath = basePath 
+                    ? `${basePath}/wasm/blackjack-core/pkg/blackjack_core.js`
+                    : './wasm/blackjack-core/pkg/blackjack_core.js';
+                wasmModule = await import(wasmPath);
             } catch (e) {
                 // Fallback: try with explicit relative path
                 console.warn('Wasm path failed, trying fallback:', e);
