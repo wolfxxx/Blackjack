@@ -1,10 +1,38 @@
-import init, { run_simulation_with_progress, run_spot_check, play_single_game } from './wasm/blackjack-core/pkg/blackjack_core.js';
-
+// Load WASM module with GitHub Pages compatibility
+// Use import.meta.url to construct paths relative to this worker file
+// This works for both local development and GitHub Pages
+let wasmModule = null;
 let initPromise = null;
+
+async function loadWasmModule() {
+    if (!wasmModule) {
+        try {
+            // Construct path relative to this worker file using import.meta.url
+            // This automatically handles GitHub Pages subdirectory paths
+            const wasmPath = new URL('./wasm/blackjack-core/pkg/blackjack_core.js', import.meta.url);
+            wasmModule = await import(wasmPath.href);
+        } catch (e) {
+            console.error('Failed to load WASM module:', e);
+            // Fallback: try with explicit relative path
+            try {
+                wasmModule = await import('./wasm/blackjack-core/pkg/blackjack_core.js');
+            } catch (e2) {
+                console.error('Fallback WASM load also failed:', e2);
+                throw new Error(`Failed to load WASM module: ${e.message}. Fallback also failed: ${e2.message}`);
+            }
+        }
+    }
+    return wasmModule;
+}
+
+const wasmModulePromise = loadWasmModule();
 
 function ensureInitialized() {
     if (!initPromise) {
-        initPromise = init();
+        initPromise = wasmModulePromise.then(async (module) => {
+            await module.default();
+            return module;
+        });
     }
     return initPromise;
 }
@@ -15,10 +43,10 @@ self.onmessage = async (event) => {
         return;
     }
     try {
-        await ensureInitialized();
+        const module = await ensureInitialized();
         let result;
         if (isSpotCheck) {
-            result = run_spot_check(payload);
+            result = module.run_spot_check(payload);
         } else {
             const progressCallback = (current, total) => {
                 self.postMessage({
@@ -28,7 +56,7 @@ self.onmessage = async (event) => {
                     total
                 });
             };
-            result = run_simulation_with_progress(payload, progressCallback);
+            result = module.run_simulation_with_progress(payload, progressCallback);
         }
         const plainResult = convertToPlainObject(result);
         self.postMessage({

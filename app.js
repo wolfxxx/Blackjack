@@ -1634,13 +1634,16 @@ async function simulateHandWasm() {
         
         try {
             // Import WASM module - use the wasm path where the new build is
+            // Use import.meta.url to construct paths relative to this file
+            // This automatically handles GitHub Pages subdirectory paths
             let wasmModule;
             try {
-                wasmModule = await import('./wasm/blackjack-core/pkg/blackjack_core.js');
+                const wasmPath = new URL('./wasm/blackjack-core/pkg/blackjack_core.js', import.meta.url);
+                wasmModule = await import(wasmPath.href);
             } catch (e) {
-                // If that fails, try with cache busting
-                console.warn('Wasm path failed, trying with cache bust:', e);
-                wasmModule = await import('./wasm/blackjack-core/pkg/blackjack_core.js?t=' + Date.now());
+                // Fallback: try with explicit relative path
+                console.warn('Wasm path failed, trying fallback:', e);
+                wasmModule = await import('./wasm/blackjack-core/pkg/blackjack_core.js');
             }
             
             // Initialize the module
