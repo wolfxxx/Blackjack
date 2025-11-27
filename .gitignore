@@ -1,0 +1,21 @@
+# Rust build artifacts
+wasm/blackjack-core/target/
+**/target/
+
+# Node modules (if any)
+node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Build outputs (keep pkg/ as it contains necessary WASM files)
+# wasm/blackjack-core/pkg/ is kept for distribution
+

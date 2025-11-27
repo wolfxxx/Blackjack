@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blackjack Strategy Studio</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-shell">
+        <aside class="app-nav">
+            <div class="app-nav__brand">
+                <h1>Blackjack Strategy Studio</h1>
+                <p>Simulate, analyze, and optimize your play in a single streamlined workspace.</p>
+            </div>
+            <nav class="app-nav__menu">
+                <button class="nav-item active" data-view="optimization">
+                    <span class="nav-item__label">Test</span>
+                    <span class="nav-item__hint">Quick actions & progress</span>
+                </button>
+                <button class="nav-item" data-view="settings">
+                    <span class="nav-item__label">Settings</span>
+                    <span class="nav-item__hint">Table rules & counting</span>
+                </button>
+                <button class="nav-item" data-view="strategy">
+                    <span class="nav-item__label">Strategy View/Edit</span>
+                    <span class="nav-item__hint">Edit matrices & decisions</span>
+                </button>
+            </nav>
+        </aside>
+
+        <main class="app-main">
+            <section class="view active" id="view-test" data-view="optimization">
+                <section class="card dual-mode-card">
+                    <div class="dual-mode">
+                        <nav class="dual-mode__tabs" role="tablist" aria-label="Optimization sub-sections">
+                            <button class="optiview-tab active" data-subview="simulation" role="tab" aria-selected="true">
+                                <span>Simulation</span>
+                                <small>Setup & inputs</small>
+                            </button>
+                            <button class="optiview-tab" data-subview="optimization" role="tab" aria-selected="false">
+                                <span>Optimization</span>
+                                <small>Stats & change log</small>
+                            </button>
+                            <button class="optiview-tab" data-subview="spotcheck" role="tab" aria-selected="false">
+                                <span>Spot Check</span>
+                                <small>Latest evaluations</small>
+                            </button>
+                            <button class="optiview-tab" data-subview="simhand" role="tab" aria-selected="false">
+                                <span>Sim Hand</span>
+                                <small>Play a random hand</small>
+                            </button>
+                        </nav>
+                        <div class="dual-mode__content">
+                            <div class="optiview-panel active" data-subview="simulation" role="tabpanel">
+                                <header class="panel-header">
+                                    <h3>Simulation Setup</h3>
+                                    <p>Configure how many hands to run and bankroll assumptions.</p>
+                                </header>
+                                <div class="panel-body optiview-split">
+                                    <div class="optiview-split__main">
+                                        <div class="form-grid">
+                                            <div class="form-group">
+                                                <label for="numSimulations">Number of Simulations</label>
+                                                <input type="number" id="numSimulations" min="100" max="10000000" value="10000" step="1000">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="betSize">Bet Size (per hand)</label>
+                                                <input type="number" id="betSize" min="1" value="100" step="10">
+                                            </div>
+                                            <button id="runSimulationSecondary" class="btn-primary">Run Simulation</button>
+                                            <button id="runSimulationWasm" class="btn-secondary">Run WASM Simulation</button>
+                                        <div id="simulationProgressContainer" class="simulation-progress"></div>
+                                            <small class="subtle">Simulation results render alongside so you can immediately interpret performance shifts.</small>
+                                        </div>
+
+                                        <section class="simulation-stats-panel">
+                                            <header class="simulation-stats-panel__header">
+                                                <h3>Simulation Stats Overview</h3>
+                                                <p>Select which slice of the latest simulation to analyze.</p>
+                                            </header>
+                                            <div class="filters-grid">
+                                                <div class="form-group compact">
+                                                    <label for="statsType">Statistics Type</label>
+                                                    <select id="statsType">
+                                                        <option value="hard">Hard Totals</option>
+                                                        <option value="soft">Soft Totals</option>
+                                                        <option value="pairs">Pairs</option>
+                                                    </select>
+                                                </div>
+                                                <div class="form-group compact">
+                                                    <label for="statsMetric">Display Metric</label>
+                                                    <select id="statsMetric">
+                                                        <option value="hands">Number of Hands</option>
+                                                        <option value="net">Net Result</option>
+                                                        <option value="mean">Mean Result per Hand</option>
+                                                        <option value="winRate">Win Rate %</option>
+                                                        <option value="totalWinnings">Total Winnings</option>
+                                                        <option value="ev">Expected Value</option>
+                                                    </select>
+                                                </div>
+                                                <div class="form-group compact">
+                                                    <label for="statsCountFilter">Count Level</label>
+                                                    <select id="statsCountFilter">
+                                                        <option value="all">All Counts</option>
+                                                        <option value="-4">Very Low (-4 and below)</option>
+                                                        <option value="-3">Low (-3)</option>
+                                                        <option value="-2">Low (-2)</option>
+                                                        <option value="-1">Low (-1)</option>
+                                                        <option value="0">Neutral (0)</option>
+                                                        <option value="1">High (+1)</option>
+                                                        <option value="2">High (+2)</option>
+                                                        <option value="3">High (+3)</option>
+                                                        <option value="4">Very High (+4 and above)</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <div id="strategyStatsTable" class="strategy-table-container bordered">
+                                                <p class="placeholder">Run a simulation to see strategy statistics.</p>
+                                            </div>
+                                        </section>
+                                    </div>
+                                    <aside class="optiview-split__aside optiview-result active" data-subview="simulation">
+                                        <div class="mini-card">
+                                            <div class="mini-card__header">
+                                                <h4>Simulation Results</h4>
+                                                <p>Latest outcomes from your runs.</p>
+                                            </div>
+                                            <div class="mini-card__body">
+                                                <div id="countDisplay" class="info-panel" style="display: none;">
+                                                    <h4>Count Statistics</h4>
+                                                    <div id="countStats"></div>
+                                                </div>
+                                                <div id="simulationResults" class="results-stack"></div>
+                                            </div>
+                                        </div>
+                                    </aside>
+                                </div>
+                            </div>
+                            <div class="optiview-panel" data-subview="optimization" role="tabpanel">
+                                <header class="panel-header">
+                                    <h3>Strategy Optimization</h3>
+                                    <p>Track statistics, launch optimization, and review adjustments.</p>
+                                </header>
+                                <div class="panel-body">
+                                    <div class="optimization-panel">
+                                        <div class="panel-header">
+                                            <h3>Run Optimization</h3>
+                                            <p>Evaluate each decision with targeted simulations to surface higher EV moves.</p>
+                                        </div>
+                                        <div class="optimization-grid">
+                                            <div class="form-group compact">
+                                                <label for="optSimulations">Simulations per Action</label>
+                                                <input type="number" id="optSimulations" min="10000" max="100000000" value="10000000" step="1000000">
+                                                <small>Higher = more accurate but slower.</small>
+                                            </div>
+                                            <div class="form-group compact">
+                                                <label for="optBetSize">Bet Size</label>
+                                                <input type="number" id="optBetSize" min="1" value="100">
+                                            </div>
+                                            <div class="form-group compact">
+                                                <label for="optCountScope">Optimize For</label>
+                                                <select id="optCountScope">
+                                                    <option value="selected">Selected Count Level Only</option>
+                                                    <option value="all">All Count Levels</option>
+                                                </select>
+                                            </div>
+                                            <div class="summary-box">
+                                                <p>
+                                                    <strong id="optTotalSims">102</strong> strategy cells × simulations per action. Multiply by count levels when optimizing all counts.
+                                                </p>
+                                            </div>
+                                            <div class="action-box" style="display: flex; gap: 10px;">
+                                                <button id="optimizeStrategy" type="button" class="btn-accent">Start Optimization (JS)</button>
+                                                <button id="optimizeStrategyWasm" type="button" class="btn-secondary">Start Optimization (WASM)</button>
+                                            </div>
+                                        </div>
+                                        <div class="optimization-status" id="optimizationResults"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="optiview-panel" data-subview="spotcheck" role="tabpanel">
+                                <header class="panel-header">
+                                    <h3>Spot Check Results</h3>
+                                    <p>Review and run hand analyses without leaving this view.</p>
+                                </header>
+                                <div class="panel-body optiview-split">
+                                    <div class="optiview-split__main">
+                                        <div class="spotcheck-recap">
+                                            <div class="form-group compact">
+                                                <label for="playerCards">Your Cards</label>
+                                                <input type="text" id="playerCards" placeholder="e.g., 10,6 or A,5">
+                                                <small>Enter cards separated by commas (A = Ace, J/Q/K = 10).</small>
+                                            </div>
+                                            <div class="form-group compact">
+                                                <label for="dealerCard">Dealer Up Card</label>
+                                                <input type="text" id="dealerCard" placeholder="e.g., 10 or A">
+                                            </div>
+                                            <div class="toggle-pair">
+                                                <label class="form-toggle">
+                                                    <span>Can Double</span>
+                                                    <input type="checkbox" id="canDouble" checked>
+                                                </label>
+                                                <label class="form-toggle">
+                                                    <span>Can Split</span>
+                                                    <input type="checkbox" id="canSplit" checked>
+                                                </label>
+                                            </div>
+                                            <div class="form-group compact">
+                                                <label for="spotCheckSimulations">Number of Simulations</label>
+                                                <input type="number" id="spotCheckSimulations" min="1000" max="1000000" step="1000" value="10000">
+                                                <small>More simulations = more accurate results, but slower.</small>
+                                            </div>
+                                            <div class="button-row">
+                                                <button id="analyzeSituation" class="btn-primary" type="button">Analyze Situation</button>
+                                                <button id="analyzeSituationWasm" class="btn-primary" type="button">WASM Analyze</button>
+                                            </div>
+                                            <div id="spotCheckProgressContainer" class="simulation-progress"></div>
+                                        </div>
+                                    </div>
+                                    <aside class="optiview-split__aside optiview-result" data-subview="spotcheck">
+                                        <div class="mini-card">
+                                            <div class="mini-card__header">
+                                                <h4>Spot Check Results</h4>
+                                                <p>Outputs from the most recent situation analysis.</p>
+                                            </div>
+                                            <div class="mini-card__body">
+                                                <div id="analysisResults" class="results-stack"></div>
+                                            </div>
+                                        </div>
+                                    </aside>
+                                </div>
+                            </div>
+                            <div class="optiview-panel" data-subview="simhand" role="tabpanel">
+                                <header class="panel-header">
+                                    <h3>Simulate Hand</h3>
+                                    <p>Play a random hand according to your current rules and strategy.</p>
+                                </header>
+                                <div class="panel-body optiview-split">
+                                    <div class="optiview-split__main">
+                                        <div class="spotcheck-recap">
+                                            <div class="button-row" style="margin-bottom: 20px;">
+                                                <button id="simHandButton" class="btn-primary" type="button" style="font-size: 1.1em; padding: 12px 24px;">
+                                                    🎲 SIM (JS)
+                                                </button>
+                                                <button id="simHandButtonWasm" class="btn-secondary" type="button" style="font-size: 1.1em; padding: 12px 24px;">
+                                                    🎲 SIM (WASM)
+                                                </button>
+                                            </div>
+                                            <div id="simHandProgressContainer" class="simulation-progress" style="display: none;"></div>
+                                        </div>
+                                    </div>
+                                    <aside class="optiview-split__aside optiview-result" data-subview="simhand">
+                                        <div class="mini-card">
+                                            <div class="mini-card__header">
+                                                <h4>Hand Result</h4>
+                                                <p>Results from the simulated hand.</p>
+                                            </div>
+                                            <div class="mini-card__body">
+                                                <div id="simHandResults" class="results-stack"></div>
+                                            </div>
+                                        </div>
+                                    </aside>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </section>
+
+            <section class="view" id="view-settings" data-view="settings">
+                <section class="card">
+                    <div class="card-header">
+                        <h2>Game Settings</h2>
+                        <p>Table rules & shoe configuration</p>
+                    </div>
+                    <div class="card-body form-grid">
+                        <div class="form-group">
+                            <label for="numDecks">Number of Decks</label>
+                            <input type="number" id="numDecks" min="1" max="8" value="6">
+                        </div>
+                        <div class="form-group">
+                            <label for="penetration">Penetration Depth (%)</label>
+                            <input type="number" id="penetration" min="50" max="100" value="75">
+                            <small>Reshuffle when this percentage of cards have been used.</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="dealerStandsOn">Dealer Stands On</label>
+                            <select id="dealerStandsOn">
+                                <option value="17">H17 (Soft 17 = Hit)</option>
+                                <option value="17s">S17 (Soft 17 = Stand)</option>
+                            </select>
+                        </div>
+                        <div class="form-toggle">
+                            <label for="doubleAfterSplit">Allow Double After Split</label>
+                            <input type="checkbox" id="doubleAfterSplit" checked>
+                        </div>
+                        <div class="form-toggle">
+                            <label for="allowResplit">Allow Resplitting</label>
+                            <input type="checkbox" id="allowResplit" checked>
+                            <small>Allow resplitting pairs indefinitely (except aces)</small>
+                        </div>
+                        <div class="form-toggle">
+                            <label for="resplitAces">Allow Resplitting Aces</label>
+                            <input type="checkbox" id="resplitAces">
+                            <small>Allow resplitting aces (requires resplitting to be enabled)</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="blackjackPays">Blackjack Pays</label>
+                            <select id="blackjackPays">
+                                <option value="3:2">3:2 (Standard)</option>
+                                <option value="6:5">6:5</option>
+                                <option value="1:1">1:1</option>
+                            </select>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="card">
+                    <div class="card-header">
+                        <h2>Card Counting</h2>
+                        <p>Choose a running count system or define your own.</p>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-toggle">
+                            <label for="enableCounting">Enable Card Counting</label>
+                            <input type="checkbox" id="enableCounting">
+                        </div>
+                        <div class="form-group">
+                            <label for="countingSystem">Counting System</label>
+                            <select id="countingSystem">
+                                <option value="Hi-Lo">Hi-Lo (Balanced)</option>
+                                <option value="Hi-Opt I">Hi-Opt I</option>
+                                <option value="Hi-Opt II">Hi-Opt II</option>
+                                <option value="Omega II">Omega II</option>
+                                <option value="KO (Knockout)">KO (Knockout)</option>
+                                <option value="Ace-Five">Ace-Five</option>
+                                <option value="Custom">Custom (Set Your Own)</option>
+                            </select>
+                            <small id="systemDescription" class="subtle"></small>
+                        </div>
+                        <div class="button-row">
+                            <button id="showSystemInfo" type="button" class="ghost-btn">Show Point Values</button>
+                        </div>
+                        <div id="customCountingPanel" class="sub-panel" style="display: none;">
+                            <div class="sub-panel-header">
+                                <h3>Custom Counting System</h3>
+                                <p>Set point values for each card rank. Positive values favor the player.</p>
+                            </div>
+                            <div id="customCountingInputs" class="grid-cards"></div>
+                            <button id="resetCustomCount" type="button" class="btn-secondary">Reset to Hi-Lo</button>
+                        </div>
+                        <div id="systemInfoPanel" class="sub-panel" style="display: none;">
+                            <div class="sub-panel-header">
+                                <h3>Point Values</h3>
+                            </div>
+                            <div id="systemInfoContent"></div>
+                        </div>
+                    </div>
+                </section>
+            </section>
+
+            <section class="view" id="view-strategy" data-view="strategy">
+                <section class="card strategy-card">
+                    <div class="card-header">
+                        <h2>Strategy Workspace</h2>
+                        <p>Configure, inspect, and edit your decision matrix.</p>
+                    </div>
+                    <div class="card-body">
+                        <div class="toolbar">
+                            <div class="select-row">
+                                <div class="form-group compact">
+                                    <label for="strategyMode">Strategy Mode</label>
+                                    <select id="strategyMode">
+                                        <option value="base">Base Strategy (All Counts)</option>
+                                        <option value="countBased">Count-Based Strategy</option>
+                                    </select>
+                                    <small>Count-based mode enables overrides per true count.</small>
+                                </div>
+                            </div>
+                            <div class="button-row">
+                                <button id="loadBasicStrategy" class="btn-secondary">Load Basic Strategy</button>
+                                <button id="loadOptimalStrategy" class="btn-secondary">Load Optimal Strategy</button>
+                                <button id="clearStrategy" class="ghost-btn">Clear Strategy</button>
+                                <button id="saveStrategyBrowser" class="btn-secondary">Save to Browser</button>
+                                <select id="savedStrategySelect" class="strategy-select" aria-label="Saved strategies">
+                                    <option value="">Saved strategies…</option>
+                                </select>
+                                <button id="loadStrategyBrowser" class="btn-secondary" disabled>Load Selected</button>
+                                <button id="deleteStrategyBrowser" class="ghost-btn" disabled>Delete Selected</button>
+                            </div>
+                            <div id="strategyActionStatus" class="strategy-status" role="status" aria-live="polite"></div>
+                        </div>
+
+                        <div id="countStrategySelector" class="sub-panel" style="display: none;">
+                            <div class="sub-panel-header">
+                                <h3>True Count Overrides</h3>
+                                <p>Select a true count bucket to review or edit overrides.</p>
+                            </div>
+                            <div class="form-group">
+                                <label for="countLevelSelect">Edit Strategy For</label>
+                                <select id="countLevelSelect">
+                                    <option value="base">Base (Count = 0 or no override)</option>
+                                    <option value="-4">Very Low (-4 and below)</option>
+                                    <option value="-3">Low (-3)</option>
+                                    <option value="-2">Low (-2)</option>
+                                    <option value="-1">Low (-1)</option>
+                                    <option value="1">High (+1)</option>
+                                    <option value="2">High (+2)</option>
+                                    <option value="3">High (+3)</option>
+                                    <option value="4">Very High (+4 and above)</option>
+                                </select>
+                            </div>
+                            <small class="subtle">Base strategy is used when no count-specific override exists.</small>
+                        </div>
+
+                        <div class="tabs">
+                            <button class="tab-btn active" data-tab="hard">Hard Totals</button>
+                            <button class="tab-btn" data-tab="soft">Soft Totals</button>
+                            <button class="tab-btn" data-tab="pairs">Pairs</button>
+                        </div>
+
+                        <div id="strategyInfo" class="info-banner">
+                            <strong>Current:</strong> <span id="currentStrategyInfo">Base Strategy (all counts)</span>
+                        </div>
+
+                        <div class="strategy-table-container">
+                            <div id="strategyTable" class="strategy-table"></div>
+                        </div>
+                    </div>
+                </section>
+            </section>
+
+        </main>
+    </div>
+
+    <script src="deck.js"></script>
+    <script src="counting.js"></script>
+    <script src="blackjack.js"></script>
+    <script src="strategy.js"></script>
+    <script src="simulator.js"></script>
+    <script src="app.js"></script>
+    <script type="module" src="wasm-sim.js"></script>
+</body>
+</html>
+
